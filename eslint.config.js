@@ -250,5 +250,17 @@ export default tseslint.config(
       '@typescript-eslint/no-misused-promises': 'off',
     },
     processor: 'markdown/markdown',
+  },
+  {
+    // Offline-fork packages: plain browser/Node JS outside every tsconfig. Type-aware
+    // linting here builds the whole monorepo's TS programs (~3 GB) and OOMs WSL.
+    files: ['packages/mermaid-local-editor/**', 'packages/mermaid-storage-backend/**'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['packages/mermaid-storage-backend/**'],
+    rules: {
+      'no-console': 'off',
+    },
   }
 );

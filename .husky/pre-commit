@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-NODE_OPTIONS="--max_old_space_size=8192" pnpm run pre-commit
+NODE_OPTIONS="--max_old_space_size=3072" pnpm run pre-commit
