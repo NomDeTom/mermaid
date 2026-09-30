@@ -3,6 +3,7 @@ import { createStorage } from './js/storage.js';
 import { renderDiagram } from './js/renderer.js';
 import { setupUI, refreshList } from './js/ui.js';
 import { createNavigation } from './js/navigation.js';
+import { fitToView, zoomBy } from './js/viewport.js';
 
 initMermaid();
 
@@ -10,7 +11,24 @@ const srcPanel = document.getElementById('srcPanel');
 const preview = document.getElementById('preview');
 const diagramsSelect = document.getElementById('diagrams');
 const nameInput = document.getElementById('name');
-const storage = createStorage();
+const syncStatusEl = document.getElementById('syncStatus');
+const zoomLabelEl = document.getElementById('zoomLabel');
+
+const STATUS_LABELS = {
+  offline: 'Local only',
+  syncing: 'Syncing…',
+  synced: 'Synced',
+};
+
+function onStatusChange(status) {
+  if (!syncStatusEl) {
+    return;
+  }
+  syncStatusEl.dataset.status = status;
+  syncStatusEl.textContent = STATUS_LABELS[status] ?? status;
+}
+
+const storage = createStorage({ onStatusChange });
 const navigation = createNavigation({
   state,
   preview,
@@ -42,7 +60,6 @@ function load(name) {
 
   refreshList({ diagramsSelect, nameInput, storage });
   render();
-  requestAnimationFrame(applyTransform);
 }
 
 function applyTransform() {
@@ -60,9 +77,25 @@ function applyTransform() {
 
   svg.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
 
+  if (zoomLabelEl) {
+    zoomLabelEl.textContent = `${Math.round(state.scale * 100)}%`;
+  }
+
   storage.updateCurrent({
     view: { scale: state.scale, panX: state.panX, panY: state.panY },
   });
+}
+
+function fitView() {
+  fitToView({ state, preview, applyTransform });
+}
+
+function zoomIn() {
+  zoomBy({ state, preview, applyTransform, factor: 1.2 });
+}
+
+function zoomOut() {
+  zoomBy({ state, preview, applyTransform, factor: 1 / 1.2 });
 }
 
 setupUI({
@@ -73,8 +106,24 @@ setupUI({
   state,
   render,
   load,
-  applyTransform,
+  fitView,
+  zoomIn,
+  zoomOut,
 });
 
 navigation.setupKeyboardNav();
 load(storage.current);
+
+function resync() {
+  storage.syncFromRemote(() => {
+    refreshList({ diagramsSelect, nameInput, storage });
+    load(storage.current);
+  });
+}
+
+resync();
+setInterval(() => {
+  if (storage.status === 'offline') {
+    resync();
+  }
+}, 15000);

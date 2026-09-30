@@ -72,3 +72,24 @@ After build, the editor is available at [`packages/mermaid/dist/mermaid-local-ed
 - DOMPurify is bundled locally
 - The editor is fully offline-capable
 - Designed to run directly from the `dist/` directory
+
+## Optional storage backend
+
+By default, diagrams are saved to the browser's `localStorage` only. To also persist them to disk
+(so they survive across browsers/machines), start the optional backend from
+[`mermaid-storage-backend`](../mermaid-storage-backend):
+
+```sh
+pnpm serve:storage
+```
+
+The editor auto-detects it at `http://localhost:8082` on load and in the background afterward
+(retried every 15s while offline) — no configuration needed if you run it on the default port.
+Point the editor at a different backend with `?storageUrl=http://host:port` (remembered after
+the first visit via `localStorage`).
+
+`localStorage` always stays the fast, offline-first read/write path — the backend is a mirror
+that's synced to opportunistically, with last-write-wins conflict resolution by timestamp. If the
+backend is unreachable, the editor works exactly as it did before, with no errors or blocking.
+The toolbar's status dot reflects the current state: grey **Local only**, amber **Syncing…**,
+green **Synced**.

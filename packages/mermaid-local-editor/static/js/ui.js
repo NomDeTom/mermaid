@@ -18,7 +18,9 @@ export function setupUI({
   state,
   render,
   load,
-  applyTransform,
+  fitView,
+  zoomIn,
+  zoomOut,
 }) {
   document.getElementById('save').onclick = () => {
     const name = nameInput.value.trim();
@@ -53,11 +55,16 @@ export function setupUI({
     load(storage.current);
   };
 
-  document.getElementById('resetView').onclick = () => {
-    state.scale = 1;
-    state.panX = 0;
-    state.panY = 0;
-    applyTransform(); // this will save the reset to storage.diagrams[storage.current].view
+  document.getElementById('fitView').onclick = () => {
+    fitView();
+  };
+
+  document.getElementById('zoomIn').onclick = () => {
+    zoomIn();
+  };
+
+  document.getElementById('zoomOut').onclick = () => {
+    zoomOut();
   };
 
   document.getElementById('exportSvg').onclick = () => {

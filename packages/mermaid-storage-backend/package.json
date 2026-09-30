@@ -1,0 +1,14 @@
+{
+  "name": "@mermaid-js/mermaid-storage-backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Optional HTTP storage backend for the Mermaid local editor, persisting diagrams to disk instead of only browser localStorage.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}
