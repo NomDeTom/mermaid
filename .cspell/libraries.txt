@@ -24,6 +24,7 @@ Doctave
 DokuWiki
 dompurify
 elkjs
+Excalidraw
 fcose
 fontawesome
 Fonticons

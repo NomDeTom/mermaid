@@ -69,7 +69,6 @@ GENERICTYPE
 grammr
 graphtype
 halign
-healthz
 iife
 interp
 introdcued
