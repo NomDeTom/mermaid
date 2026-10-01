@@ -15,6 +15,9 @@ on:
       mermaid_ref:
         description: mermaid-js/mermaid tag or branch to build
         default: mermaid@12.0.0
+      d2z_mode:
+        description: 'docusaurus2zim packaging: auto, pip, or image (to test the fallback)'
+        default: auto
       publish:
         description: Attach the ZIM to a release in this repo (tag mermaid-docs-<version>)
         type: boolean
@@ -36,37 +39,27 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Check out mermaid at ${{ env.MERMAID_REF }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: mermaid-js/mermaid
           ref: ${{ env.MERMAID_REF }}
           path: mermaid
 
-      - name: Check out docusaurus2zim
-        uses: actions/checkout@v4
-        with:
-          repository: NomDeTom/docusaurus2zim
-          path: d2z
-
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: mermaid/package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: mermaid/.node-version
           cache: pnpm
           cache-dependency-path: mermaid/pnpm-lock.yaml
 
-      - uses: actions/setup-python@v5
+      - name: docusaurus2zim (pip, else its packaging image)
+        id: d2z
+        uses: NomDeTom/docusaurus2zim@action
         with:
-          python-version: '3.14'
-
-      - name: Packaging dependencies (zimscraperlib, libmagic, libcairo)
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends libmagic1 libcairo2
-          pip install -q -r d2z/requirements.txt
+          mode: ${{ inputs.d2z_mode || 'auto' }}
 
       - name: Install mermaid
         working-directory: mermaid
@@ -92,24 +85,26 @@ jobs:
       - name: Make the book relative
         # From src/vitepress, where relativize.mjs finds acorn.
         working-directory: mermaid/packages/mermaid/src/vitepress
-        run: node "$GITHUB_WORKSPACE/d2z/relativize.mjs" .vitepress/dist
+        run: node "$D2Z_HOME/relativize.mjs" .vitepress/dist
 
       - name: Package the ZIM
         run: |
           version="${MERMAID_REF#mermaid@}"
           desc="Offline build of mermaid.js.org for mermaid ${version}: every diagram type's syntax page, configuration, and the setup API reference."
-          jq --arg d "$desc" '.defaults.long_description = $d' d2z/examples/mermaid.json > mermaid-docs.json
-          python d2z/package.py --config mermaid-docs.json \
+          jq --arg d "$desc" '.defaults.long_description = $d' "$D2Z_HOME/examples/mermaid.json" > mermaid-docs.json
+          "$D2Z_PYTHON" "$D2Z_HOME/package.py" --config mermaid-docs.json \
             --build-dir mermaid/packages/mermaid/src/vitepress/.vitepress/dist \
             --output mermaid-docs.zim
           ls -la mermaid-docs.zim
+          echo "packaged with ${{ steps.d2z.outputs.mode }}"
           echo "VERSION=${version//[^A-Za-z0-9._-]/-}" >> "$GITHUB_ENV"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: mermaid-docs-${{ env.VERSION }}
           path: mermaid-docs.zim
           compression-level: 0
+          if-no-files-found: error
 
       - name: Publish a release
         if: ${{ inputs.publish }}
