@@ -1,0 +1,123 @@
+name: Mermaid docs ZIM
+
+# Builds the mermaid.js.org documentation into a Kiwix ZIM for offline reading (the
+# Irate-Box hub's /wiki/content/mermaid-docs/), with NomDeTom/docusaurus2zim. The recipe is
+# that repo's examples/README.md: generate the VitePress site, build it under a placeholder
+# base, make it relative, package it.
+#
+# This branch holds only this workflow, so pushing to it runs nothing of upstream's. The
+# mermaid source is checked out from mermaid-js/mermaid at MERMAID_REF.
+on:
+  push:
+    branches: [zim-build]
+  workflow_dispatch:
+    inputs:
+      mermaid_ref:
+        description: mermaid-js/mermaid tag or branch to build
+        default: mermaid@12.0.0
+      publish:
+        description: Attach the ZIM to a release in this repo (tag mermaid-docs-<version>)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-zim
+  cancel-in-progress: true
+
+env:
+  MERMAID_REF: ${{ inputs.mermaid_ref || 'mermaid@12.0.0' }}
+
+jobs:
+  zim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out mermaid at ${{ env.MERMAID_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: mermaid-js/mermaid
+          ref: ${{ env.MERMAID_REF }}
+          path: mermaid
+
+      - name: Check out docusaurus2zim
+        uses: actions/checkout@v4
+        with:
+          repository: NomDeTom/docusaurus2zim
+          path: d2z
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: mermaid/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: mermaid/.node-version
+          cache: pnpm
+          cache-dependency-path: mermaid/pnpm-lock.yaml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Packaging dependencies (zimscraperlib, libmagic, libcairo)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libmagic1 libcairo2
+          pip install -q -r d2z/requirements.txt
+
+      - name: Install mermaid
+        working-directory: mermaid
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the VitePress site
+        working-directory: mermaid/packages/mermaid
+        run: |
+          pnpm --filter ./src/docs prefetch
+          # docs:code, minus the typecheck that failed on 11.16
+          npx typedoc --skipErrorChecking src/defaultConfig.ts src/config.ts src/mermaid.ts
+          npx prettier --write ./src/docs/config/setup
+          rm -rf src/vitepress && npx tsx scripts/docs.cli.mts --vitepress
+          pnpm --filter ./src/vitepress install --no-frozen-lockfile --ignore-scripts
+
+      - name: Build under the placeholder base
+        working-directory: mermaid/packages/mermaid/src/vitepress
+        env:
+          # Peaks around 4.2 GB; the runner has 16.
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npx vitepress build --base /__d2z_root__/
+
+      - name: Make the book relative
+        # From src/vitepress, where relativize.mjs finds acorn.
+        working-directory: mermaid/packages/mermaid/src/vitepress
+        run: node "$GITHUB_WORKSPACE/d2z/relativize.mjs" .vitepress/dist
+
+      - name: Package the ZIM
+        run: |
+          version="${MERMAID_REF#mermaid@}"
+          desc="Offline build of mermaid.js.org for mermaid ${version}: every diagram type's syntax page, configuration, and the setup API reference."
+          jq --arg d "$desc" '.defaults.long_description = $d' d2z/examples/mermaid.json > mermaid-docs.json
+          python d2z/package.py --config mermaid-docs.json \
+            --build-dir mermaid/packages/mermaid/src/vitepress/.vitepress/dist \
+            --output mermaid-docs.zim
+          ls -la mermaid-docs.zim
+          echo "VERSION=${version//[^A-Za-z0-9._-]/-}" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mermaid-docs-${{ env.VERSION }}
+          path: mermaid-docs.zim
+          compression-level: 0
+
+      - name: Publish a release
+        if: ${{ inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="mermaid-docs-${VERSION}"
+          notes="mermaid.js.org docs for mermaid ${VERSION}, as a relative Kiwix book. Install on an Irate-Box hub with: sudo ./install.sh --zim <this asset's URL>"
+          gh release create "$tag" mermaid-docs.zim --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Mermaid docs ZIM (mermaid ${VERSION})" --notes "$notes" ||
+            gh release upload "$tag" mermaid-docs.zim --repo "$GITHUB_REPOSITORY" --clobber
