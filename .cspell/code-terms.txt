@@ -70,6 +70,7 @@ GENERICTYPE
 grammr
 graphtype
 halign
+hublock
 iife
 instrumenter
 interp
@@ -168,6 +169,7 @@ ts-nocheck
 tsdoc
 typeof
 typestr
+unhex
 unrouted
 unshift
 urlsafe

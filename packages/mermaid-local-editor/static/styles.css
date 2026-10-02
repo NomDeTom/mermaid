@@ -80,6 +80,56 @@ div > * {
   padding: 4px 8px;
 }
 
+#zoomLabel {
+  display: flex;
+  align-items: center;
+  min-width: 3.5em;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  color: #aaa;
+  font-size: 13px;
+}
+
+#syncStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #999;
+}
+#syncStatus::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+#syncStatus[data-status='synced']::before {
+  background: #3fbf60;
+}
+#syncStatus[data-status='syncing']::before {
+  background: #d9a441;
+  animation: sync-pulse 1s ease-in-out infinite;
+}
+#syncStatus[data-status='offline']::before {
+  background: #666;
+}
+#syncStatus[data-status='locked']::before {
+  background: #d96b41;
+}
+
+@keyframes sync-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 #preview svg {
   width: 100%;
   height: auto;

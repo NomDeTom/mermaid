@@ -1,4 +1,5 @@
 /* global mermaid, DOMPurify */
+import { fitToView, isUnsetView } from './viewport.js';
 
 export async function renderDiagram({
   srcValue,
@@ -68,6 +69,17 @@ export async function renderDiagram({
 
       svgEl.style.transformOrigin = '0 0';
       svgEl.style.display = 'block';
+
+      // Every render swaps in a fresh iframe/svg with no transform of its own,
+      // so the current pan/zoom (or an initial fit, for a never-adjusted view)
+      // has to be (re)applied here every time — otherwise each keystroke would
+      // reset the view to the diagram's raw native size, clipped by the
+      // iframe's overflow:hidden body.
+      if (isUnsetView(state)) {
+        fitToView({ state, preview, applyTransform });
+      } else {
+        applyTransform();
+      }
     });
 
     const style = doc.createElement('style');

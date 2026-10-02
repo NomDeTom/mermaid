@@ -13,6 +13,10 @@ export function initMermaid() {
     flowchart: {
       useMaxWidth: false,
     },
+    // Without this, mermaid swallows render-time errors and draws its own
+    // generic "Syntax error in text" placeholder instead of throwing, so
+    // renderer.js's catch block never sees the real error message.
+    suppressErrorRendering: true,
   });
 }
 
