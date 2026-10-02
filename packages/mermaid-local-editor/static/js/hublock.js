@@ -1,4 +1,6 @@
 // Copied unchanged from irate-box static/lock.js: the hub's device locks (see there). Keep the two identical.
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 NomDeTom
 // Device locks for saves and dropped files (store.py, "locks"): the browser side.
 //
 // No password is ever typed or sent. The page picks a random seed, keeps it in this browser's
