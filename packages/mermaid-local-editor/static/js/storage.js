@@ -8,7 +8,7 @@ export function createStorage({ onStatusChange } = {}) {
   let diagrams = JSON.parse(localStorage.getItem('mermaid-diagrams') || '{}');
   let current = localStorage.getItem('mermaid-current') || 'main';
   const remote = createRemote();
-  let status = 'offline'; // 'offline' | 'syncing' | 'synced'
+  let status = 'offline'; // 'offline' | 'syncing' | 'synced' | 'locked' (another device holds a lock)
 
   function setStatus(next) {
     status = next;
@@ -34,7 +34,7 @@ export function createStorage({ onStatusChange } = {}) {
     }
     remote.put(name, diagrams[name]).then(
       () => setStatus('synced'),
-      () => setStatus('offline')
+      (err) => setStatus(err?.locked ? 'locked' : 'offline')
     );
   }
 
@@ -44,7 +44,7 @@ export function createStorage({ onStatusChange } = {}) {
     }
     remote.del(name).then(
       () => setStatus('synced'),
-      () => setStatus('offline')
+      (err) => setStatus(err?.locked ? 'locked' : 'offline')
     );
   }
 
@@ -133,5 +133,20 @@ export function createStorage({ onStatusChange } = {}) {
     },
 
     syncFromRemote,
+
+    // The current diagram's lock on the hub: 'none' | 'mine' | 'other'.
+    lockState(name = current) {
+      return remote.lockState(name);
+    },
+
+    // Lock or unlock a diagram on the hub. Needs the hub; resolves to the new lock state.
+    async setLocked(name, on) {
+      if (status === 'offline' || !diagrams[name]) {
+        throw new Error('the hub is not reachable');
+      }
+      const result = await remote.setLocked(name, diagrams[name], on);
+      setStatus('synced');
+      return result;
+    },
   };
 }

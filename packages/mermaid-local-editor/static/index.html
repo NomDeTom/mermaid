@@ -9,6 +9,7 @@
     <script src="./vendor/mermaid.min.js"></script>
     <script src="./vendor/purify.min.js"></script>
 
+    <script src="./js/hublock.js"></script>
     <script type="module" src="./app.js"></script>
   </head>
   <body>
@@ -19,6 +20,13 @@
       <button id="save">💾 Save</button>
       <button id="new">➕ New</button>
       <button id="del">🗑 Delete</button>
+      <button
+        id="lock"
+        title="Lock this diagram on the hub so only this browser can change or delete it there"
+        disabled
+      >
+        🔓 Lock
+      </button>
       <button id="zoomOut" title="Zoom out">－</button>
       <span id="zoomLabel">100%</span>
       <button id="zoomIn" title="Zoom in">＋</button>

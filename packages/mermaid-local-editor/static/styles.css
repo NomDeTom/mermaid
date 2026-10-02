@@ -116,6 +116,9 @@ div > * {
 #syncStatus[data-status='offline']::before {
   background: #666;
 }
+#syncStatus[data-status='locked']::before {
+  background: #d96b41;
+}
 
 @keyframes sync-pulse {
   0%,

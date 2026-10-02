@@ -69,6 +69,7 @@ GENERICTYPE
 grammr
 graphtype
 halign
+hublock
 iife
 interp
 introdcued
@@ -164,6 +165,7 @@ ts-nocheck
 tsdoc
 typeof
 typestr
+unhex
 uninstrumented
 unrouted
 unshift

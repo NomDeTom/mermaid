@@ -96,3 +96,14 @@ the hub is unreachable, the editor works exactly as before, with no errors or bl
 toolbar's status dot shows the state: grey **Local only**, amber **Syncing…**, green **Synced**.
 
 Diagram names longer than 64 characters are truncated by the hub's store.
+
+### Locking a diagram on the hub
+
+The 🔒 button locks the current diagram on the hub so that only this browser can change or
+delete it there; it still expires with the hub's other saves, and the hub's admin can still
+remove it. No password is involved: the hub serves plain HTTP on an open network, so the
+browser keeps a random key and the hub a hash chain of it (`js/hublock.js`, copied unchanged
+from the hub's `static/lock.js`), and nothing reusable crosses the network. A diagram that
+another device has locked still edits here, but is no longer pushed to the hub ("Locked by
+another device: kept here only"). The hub's _Locks on this device_ page (`/locks.html`) shows a
+lock's key, to carry it to another browser.

@@ -21,6 +21,7 @@ export function setupUI({
   fitView,
   zoomIn,
   zoomOut,
+  refreshLock,
 }) {
   document.getElementById('save').onclick = () => {
     const name = nameInput.value.trim();
@@ -54,6 +55,29 @@ export function setupUI({
     storage.deleteCurrent();
     load(storage.current);
   };
+
+  const lockBtn = document.getElementById('lock');
+  if (lockBtn) {
+    lockBtn.onclick = async () => {
+      const name = storage.current;
+      const on = storage.lockState(name) !== 'mine';
+      if (
+        !on &&
+        !confirm(
+          `Unlock "${name}" on the hub? Anyone using the hub could then change or delete it there.`
+        )
+      ) {
+        return;
+      }
+      lockBtn.disabled = true;
+      try {
+        await storage.setLocked(name, on);
+      } catch (err) {
+        alert(`Could not ${on ? 'lock' : 'unlock'} "${name}": ${err.message}`);
+      }
+      refreshLock?.();
+    };
+  }
 
   document.getElementById('fitView').onclick = () => {
     fitView();

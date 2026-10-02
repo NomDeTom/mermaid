@@ -18,7 +18,30 @@ const STATUS_LABELS = {
   offline: 'Local only',
   syncing: 'Syncing…',
   synced: 'Synced',
+  locked: 'Locked by another device: kept here only',
 };
+
+const lockBtn = document.getElementById('lock');
+
+// The lock button follows the current diagram: can be locked, locked here, or locked elsewhere.
+function refreshLock() {
+  if (!lockBtn) {
+    return;
+  }
+  const online = storage.status !== 'offline';
+  const lock = storage.lockState();
+  lockBtn.disabled = !online || lock === 'other';
+  lockBtn.textContent =
+    lock === 'mine' ? '🔒 Locked' : lock === 'other' ? '🔒 Locked elsewhere' : '🔓 Lock';
+  lockBtn.title =
+    lock === 'mine'
+      ? 'Locked to this browser on the hub: only it can change or delete this diagram there. Click to unlock.'
+      : lock === 'other'
+        ? 'Another device locked this diagram on the hub: edits stay in this browser.'
+        : online
+          ? 'Lock this diagram on the hub so only this browser can change or delete it there.'
+          : 'Locking needs the hub.';
+}
 
 function onStatusChange(status) {
   if (!syncStatusEl) {
@@ -26,6 +49,7 @@ function onStatusChange(status) {
   }
   syncStatusEl.dataset.status = status;
   syncStatusEl.textContent = STATUS_LABELS[status] ?? status;
+  refreshLock();
 }
 
 const storage = createStorage({ onStatusChange });
@@ -60,6 +84,7 @@ function load(name) {
 
   refreshList({ diagramsSelect, nameInput, storage });
   render();
+  refreshLock();
 }
 
 function applyTransform() {
@@ -109,6 +134,7 @@ setupUI({
   fitView,
   zoomIn,
   zoomOut,
+  refreshLock,
 });
 
 navigation.setupKeyboardNav();
